@@ -114,13 +114,22 @@ letter-spacing:2px;text-transform:uppercase;}
 border-radius:5px;transition:width .3s;}
 
 /* 結果 */
-#resultBox{display:none;align-items:center;gap:14px;}
-#predBig{flex:0 0 auto;text-align:center;min-width:80px;}
-#predLabel{font-size:1.7rem;font-weight:900;line-height:1;animation:pop .35s ease;}
+#resultBox{display:none;align-items:stretch;gap:14px;}
+/* ★ predBig：紅/藍底填滿，大字白色，無 PREDICTION */
+#predBig{
+flex:0 0 auto;
+width:90px;
+border-radius:12px;
+display:flex;align-items:center;justify-content:center;
+transition:background .25s;
+}
+#predBig.bk{background:linear-gradient(135deg,#b02020,#e03030);box-shadow:0 3px 14px rgba(224,48,48,.5);}
+#predBig.pl{background:linear-gradient(135deg,#1858c8,#2b72e8);box-shadow:0 3px 14px rgba(43,114,232,.5);}
+#predLabel{
+font-size:2.6rem;font-weight:900;color:#fff;line-height:1;
+animation:pop .35s ease;letter-spacing:2px;
+}
 @keyframes pop{0%{transform:scale(.7);opacity:0;}65%{transform:scale(1.1);}100%{transform:scale(1);opacity:1;}}
-#predLabel.bk{color:var(–red);text-shadow:0 0 18px rgba(224,48,48,.5);}
-#predLabel.pl{color:var(–blue);text-shadow:0 0 18px rgba(43,114,232,.5);}
-#predSub{font-size:.62rem;color:var(–muted);margin-top:3px;letter-spacing:1px;}
 
 #predMid{flex:1 1 0;display:flex;flex-direction:column;gap:8px;min-width:0;}
 .prob-line{display:flex;align-items:center;gap:7px;}
@@ -249,7 +258,7 @@ border-radius:9px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
 
 <!-- 解鎖疊層 -->
 
-<div id="lockOverlay">
+<div id="lockOverlay" style="display:none;">
   <div class="lk-icon">🔐</div>
   <h2>百家樂趨勢分析 V6</h2>
   <p id="lockDesc">請輸入密碼以解鎖使用</p>
@@ -263,7 +272,7 @@ border-radius:9px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
 
 <!-- 主內容 -->
 
-<div id="mainWrap" style="display:none;">
+<div id="mainWrap" style="display:block;">
 
 <div id="confirmOverlay">
   <div id="confirmBox">
@@ -332,7 +341,6 @@ border-radius:9px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
       <div id="resultBox">
         <div id="predBig">
           <div id="predLabel">—</div>
-          <div id="predSub">PREDICTION</div>
         </div>
         <div id="predMid">
           <div class="prob-line">
@@ -561,7 +569,8 @@ function showPrediction(){
   const nonT=history.filter(h=>h.winner!=='T');let streak=0,streakDir='';
   if(nonT.length){streakDir=nonT[nonT.length-1].winner;streak=1;for(let i=nonT.length-2;i>=0;i--){if(nonT[i].winner===streakDir)streak++;else break;}}
 
-  const lbl=document.getElementById('predLabel');lbl.textContent=pred==='B'?'🟥 莊':'🟦 閒';lbl.className=pred==='B'?'bk':'pl';
+  const lbl=document.getElementById('predLabel');lbl.textContent=pred==='B'?'莊':'閒';
+  const pb=document.getElementById('predBig');pb.className=pred==='B'?'bk':'pl';
   document.getElementById('barB').style.width=pB+'%';document.getElementById('barP').style.width=pP+'%';
   document.getElementById('pctB').textContent=pB.toFixed(1)+'%';document.getElementById('pctP').textContent=pP.toFixed(1)+'%';
   const rp=document.getElementById('riskPill');
@@ -611,35 +620,6 @@ function doUnlock(){
 document.addEventListener('DOMContentLoaded',function(){
   window.addEventListener('resize',drawRoad);
 
-  document.getElementById('unlockBtn').addEventListener('click',()=>{
-    document.getElementById('pwArea').style.display='flex';
-    setTimeout(()=>document.getElementById('pwInput').focus(),100);
-  });
-
-  function tryUnlock(){
-    const v=document.getElementById('pwInput').value.trim();
-    const err=document.getElementById('pwErr');
-    if(v===P1||v===P2){
-      if(timerIv)clearInterval(timerIv);
-      localStorage.removeItem(P3_EK);localStorage.removeItem(P4_EK);
-      document.getElementById('timerBar').style.display='none';
-      doUnlock();return;
-    }
-    if(v===P3){
-      if(isUsed(P3_UK)){err.textContent='🚫 此密碼已使用過。';document.getElementById('pwInput').value='';return;}
-      localStorage.setItem(P3_UK,'1');localStorage.setItem(P3_EK,String(Date.now()+P3_MS));
-      doUnlock();startTimer(P3_EK);return;
-    }
-    if(v===P4){
-      if(isUsed(P4_UK)){err.textContent='🚫 此密碼已使用過。';document.getElementById('pwInput').value='';return;}
-      localStorage.setItem(P4_UK,'1');localStorage.setItem(P4_EK,String(Date.now()+P4_MS));
-      doUnlock();startTimer(P4_EK);return;
-    }
-    err.textContent='❌ 密碼錯誤';document.getElementById('pwInput').value='';
-  }
-
-  document.getElementById('pwOkBtn').addEventListener('click',tryUnlock);
-  document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
   document.getElementById('confirmNo').addEventListener('click',()=>{document.getElementById('confirmOverlay').style.display='none';});
   document.getElementById('confirmYes').addEventListener('click',()=>{
     document.getElementById('confirmOverlay').style.display='none';
@@ -653,12 +633,7 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('btnUndo').addEventListener('click',undoLast);
   document.getElementById('btnClear').addEventListener('click',clearAll);
 
-  if(isAlive(P3_EK)){doUnlock();startTimer(P3_EK);}
-  else if(isAlive(P4_EK)){doUnlock();startTimer(P4_EK);}
-  else if(getExp(P3_EK)){localStorage.removeItem(P3_EK);document.getElementById('pwArea').style.display='flex';document.getElementById('lockDesc').textContent='⏰ 限時使用已到期';document.getElementById('pwErr').textContent='請輸入正式密碼繼續使用';}
-  else if(getExp(P4_EK)){localStorage.removeItem(P4_EK);document.getElementById('pwArea').style.display='flex';document.getElementById('lockDesc').textContent='⏰ 限時使用已到期';document.getElementById('pwErr').textContent='請輸入正式密碼繼續使用';}
-
-  loadAll();
+  loadAll();updateAll();
 });
 </script>
 
