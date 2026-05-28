@@ -465,7 +465,43 @@ const saveP=()=>localStorage.setItem(PLK,JSON.stringify(predLog));
 function mA(){const st=['B','P','T'],mat=st.map(()=>st.map(()=>0));for(let i=1;i<history.length;i++)mat[st.indexOf(history[i-1].winner)][st.indexOf(history[i].winner)]++;const li=st.indexOf(history[history.length-1].winner),tot=mat[li].reduce((a,b)=>a+b,0)||1;return{B:mat[li][0]/tot*100,P:mat[li][1]/tot*100};}
 function mB(){if(history.length<3)return{B:50,P:50};const cnt={};for(let i=2;i<history.length;i++){const k=history[i-2].winner+history[i-1].winner;if(!cnt[k])cnt[k]={B:0,P:0,T:0};cnt[k][history[i].winner]++;}const k2=history[history.length-2].winner+history[history.length-1].winner,c=cnt[k2]||{B:1,P:1,T:0},tot=c.B+c.P+c.T||1;return{B:c.B/tot*100,P:c.P/tot*100};}
 function mC(){let pred={B:0,P:0};for(let len=3;len<=Math.min(20,history.length-1);len++){const ls=JSON.stringify(history.slice(-len).map(h=>h.winner));for(let i=0;i<=history.length-len-1;i++)if(JSON.stringify(history.slice(i,i+len).map(h=>h.winner))===ls){const n=history[i+len].winner;if(n==='B'||n==='P')pred[n]+=1/len;}}const tot=pred.B+pred.P||1;return{B:pred.B/tot*100,P:pred.P/tot*100};}
-function mD(){const nonT=history.filter(h=>h.winner!=='T');if(nonT.length<2)return{B:50,P:50};let n=1,dir=nonT[nonT.length-1].winner;for(let i=nonT.length-2;i>=0;i--){if(nonT[i].winner===dir)n++;else break;}let fp=n<=2?.41:n===3?.47:n===4?.53:n===5?.57:Math.min(.62,.57+(n-5)*.01);return dir==='B'?{B:fp*100,P:(1-fp)*100}:{B:(1-fp)*100,P:fp*100};}
+function mD() {
+    const nonT = history.filter(h => h.winner !== 'T');
+    if (nonT.length < 3) return { B: 50, P: 50 };
+
+    // 取得最後一方與連勝長度
+    const last = nonT[nonT.length - 1].winner;
+    let streak = 1;
+    
+    for (let i = nonT.length - 2; i >= 0; i--) {
+        if (nonT[i].winner === last) {
+            streak++;
+        } else {
+            break;
+        }
+    }
+
+    let prob;
+
+    if (streak < 3) {
+        prob = 50;                    
+    } 
+    else if (streak === 3) {
+        prob = last === 'B' ? 58 : 42;   
+    } 
+    else {
+        // streak >= 4，強力跟龍（最高調整至82）
+        if (streak === 4) prob = 63;
+        else if (streak === 5) prob = 68;
+        else if (streak === 6) prob = 73;
+        else if (streak === 7) prob = 77;
+        else prob = Math.min(82, 77 + (streak - 7) * 2);
+    }
+
+    return last === 'B' 
+        ? { B: prob, P: 100 - prob } 
+        : { B: 100 - prob, P: prob };
+}
 function mE(){const r=history.slice(-30).filter(h=>h.winner!=='T');if(r.length<5)return{B:50,P:50};const bRate=r.filter(h=>h.winner==='B').length/r.length,pScore=50+(bRate-0.5)*65;return{B:100-pScore,P:pScore};}
 function mF(){const nonT=history.filter(h=>h.winner!=='T');if(nonT.length<10)return{B:50,P:50};const n=nonT.length,bCount=nonT.filter(h=>h.winner==='B').length,deviation=bCount-n*0.5068;const last7=nonT.slice(-7),bIn7=last7.filter(h=>h.winner==='B').length,momentum=(bIn7/7-0.5)*2;const scoreB=50+momentum*15-Math.tanh(deviation/8)*20;return{B:Math.min(80,Math.max(20,scoreB)),P:Math.min(80,Math.max(20,100-scoreB))};}
 function mG(){const win=history.slice(-20);if(win.length<6)return{B:50,P:50};let votes={B:0,P:0};for(let len=2;len<=4;len++){const pat=JSON.stringify(win.slice(-len).map(h=>h.winner));let freq=0,bV=0,pV=0;for(let i=0;i<=win.length-len-1;i++)if(JSON.stringify(win.slice(i,i+len).map(h=>h.winner))===pat){freq++;const nx=win[i+len].winner;if(nx==='B')bV++;if(nx==='P')pV++;}if(freq>=2){votes.B+=bV*freq*len;votes.P+=pV*freq*len;}}const tot=votes.B+votes.P||1;return{B:votes.B/tot*100,P:votes.P/tot*100};}
